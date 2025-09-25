@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Queens CUNY Campuses Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <style>
+    body, html { margin:0; padding:0; height:100%; }
+    #map { width:100%; height:100%; }
+    .leaflet-popup-content-wrapper { opacity: 90%; background-color: #b83acf; color: white; border-radius: 5px;}
+    .leaflet-popup-tip { background-color: #b83acf; /* color of the little pointer */}
+    .popup-card { width: 250px; font-family: Arial, sans-serif;}
+    .popup-card h3 { margin: 0; font-size: 16px; }
+    .popup-card img { width: 100%; height: auto; border-radius: 5px; margin-bottom: 5px; }
+    .popup-card p { margin: 5px 0; font-size: 14px; }
+    .popup-card a { color: black; font-size: 14px; text-decoration: none; }
+    .popup-card a:hover { text-decoration: underline; }
+  </style>
+
+  <style>
+/* ===== 1️⃣ Sidebar container ===== */
+#sidebar {
+  position: absolute;
+  top: 0;
+  right: 0; 
+  width: 0;  
+  height: 100%;
+  background-color: #ffffff;
+  opacity: 1;
+  overflow-x: hidden; 
+  overflow-y: auto;   
+  transition: 0.3s;   
+  box-shadow: -2px 0 5px rgba(0,0,0,0.3); 
+  padding: 0;  
+  z-index: 1000; 
+  font-family: Arial, sans-serif;
+}
+
+/* ===== 2️⃣ Sidebar open state ===== */
+#sidebar.open {
+  width: 40vw;
+  min-width: 320px;
+  max-width: 600px;
+  padding: 30px 20px 30px 30px;
+  transition: 0.3s;
+  overflow-y: auto;
+  width: 100%;
+  height: 95vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* ===== 3️⃣ Close button ===== */
+#sidebar #closeSidebar {
+  background-color: #b83acf;    /* Match popup color */
+  color: white;
+  opacity: 100%;
+  border: none;
+  padding: 14px 19px;
+  cursor: pointer;
+  border-radius: 3px;
+  float: right;                 /* Top right corner */
+  margin-top: -18px;
+  margin-right: -19px;
+}
+
+/* Hover effect for close button */
+#sidebar #closeSidebar:hover {
+  background-color: #9a2fa6;
+}
+
+/* ===== 4️⃣ Sidebar headings ===== */
+#sidebar h2 {
+  margin-top: 20px;
+  font-size: 20px;
+  color: #333;
+}
+
+/* ===== 5️⃣ Sidebar links ===== */
+#sidebar a {
+  color: #007BFF;
+  text-decoration: none;
+}
+
+#sidebar a:hover {
+  text-decoration: underline;
+}
+
+/* ===== 6️⃣ Sidebar paragraphs ===== */
+#sidebar p {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #555;
+  margin: 10px 0;
+  padding: 0, 30px;
+}
+
+/* ===== 7️⃣ Optional: scrollbar styling ===== */
+#sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: #b83acf;
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: #9a2fa6;
+}
+</style>
+
+</head>
+
+
+<body>
+
+<div style="margin: 20px;">
+    <a style=" font-size: 50px; font-weight: 400; text-decoration: none;" class="open-sidebar" href="#"
+    data-campus="The Queens Story" data-address="The largest and most populous Borough of NYC" data-website="${website}"
+    >The Queens Story</a>
+</div>
+
+<div id="map"></div>
+
+<div id="sidebar"><div id="sidebar-inner"></div></div>
+
+<script>//*******************Initialize map************************
+  var map = L.map('map').setView([40.74, -73.82], 12);
+
+  // Base tiles
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+</script>
+
+
+<script>//*****************icons and layers*********************
+// Custom icons
+  var airportIcon = L.icon({ iconUrl: 'Assets/airplane.png', iconSize: [30,30]});
+  var campusIcon = L.icon({iconUrl: 'Assets/campusIcon.png', iconSize: [30,30]});
+  var hospitalIcon = L.icon({iconUrl:  'Assets/hospital-sign.png', iconSize: [30,30]});
+  // Custom icon for each college
+  var queensCollegeIcon = L.icon({
+    iconUrl: 'https://www.clipartmax.com/png/small/262-2622343_queens-college-city-university-of-new-york.png',
+    iconSize: [40,40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
+  });
+  var yorkCollegeIcon = L.icon({
+    iconUrl: 'Assets/yorkcollegemap.png',
+    iconSize: [40,40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
+  });
+  var laguardiaCollegeIcon = L.icon({
+    iconUrl: 'Assets/LaGuardia_Community_College_logo.svg',
+    iconSize: [40,40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
+  });
+  var queensCommunityCollegeIcon = L.icon({
+    iconUrl: 'Assets/qcc.png',
+    iconSize: [40,40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
+  });
+  var CUNYschooloflawCollegeIcon = L.icon({
+    iconUrl: 'Assets/Schooloflaw.png',
+    iconSize: [40,40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
+  });
+ 
+
+
+  // Layer groups
+  var campusLayer = L.layerGroup();
+  var airportsLayer = L.layerGroup();
+  var hospitalLayer = L.layerGroup();
+
+</script>
+
+
+<script> //****************Locations of Campuses ***********************
+
+  // Load GeoJSON from Campus locations API
+  fetch("https://data.ny.gov/resource/irqs-74ez.geojson?$query=SELECT%0A%20%20%60college_or_institution_type%60%2C%0A%20%20%60campus%60%2C%0A%20%20%60campus_website%60%2C%0A%20%20%60address%60%2C%0A%20%20%60city%60%2C%0A%20%20%60state%60%2C%0A%20%20%60zip%60%2C%0A%20%20%60lat%60%2C%0A%20%20%60long%60%2C%0A%20%20%60georeference%60%0AWHERE%0A%20%20caseless_not_one_of(%0A%20%20%20%20%60city%60%2C%0A%20%20%20%20%22%22%2C%0A%20%20%20%20%22New%20York%22%2C%0A%20%20%20%20%22Brooklyn%22%2C%0A%20%20%20%20%22Staten%20Island%22%2C%0A%20%20%20%20%22Bronx%22%0A%20%20)", {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    L.geoJSON(data, {
+      pointToLayer: function (feature, latlng) {
+        // Use custom icon for each campus by exact name
+        if (feature.properties.campus === "Queens College") {
+          return L.marker(latlng, {icon: queensCollegeIcon});
+        } else if (feature.properties.campus === "York College") {
+          return L.marker(latlng, {icon: yorkCollegeIcon});
+        } else if (feature.properties.campus === "LaGuardia Community College") {
+          return L.marker(latlng, {icon: laguardiaCollegeIcon});
+        } else if (feature.properties.campus === "Queensborough Community College") {
+          return L.marker(latlng, {icon: queensCommunityCollegeIcon});
+        } else if (feature.properties.campus === "School of Law") {
+          return L.marker(latlng, {icon: CUNYschooloflawCollegeIcon});
+        } else {
+          return L.marker(latlng, {icon: campusIcon});
+        }
+      },
+      onEachFeature: function (feature, layer) {
+
+        var name = feature.properties.campus;
+        var address = feature.properties.address || "Address not available";
+        var website = feature.properties.campus_website || "#";
+        // Use logo for each campus by exact name
+        var image = (name === "Queens College")
+          ? "https://www.clipartmax.com/png/small/262-2622343_queens-college-city-university-of-new-york.png"
+          : (name === "York College")
+            ? "Assets/yorkcollege.png"
+            : (name === "LaGuardia Community College")
+              ? "Assets/LaGuardia_Community_College_logo.svg"
+              : (name === "Queensborough Community College")
+                ? "Assets/qcc.png"
+                : (name === "School of Law")
+                  ? "Assets/Schooloflaw.png"
+                  : (feature.properties.image_url || 'default.png');
+
+        layer.bindPopup(`
+          <div class="popup-card" style="background-color: #b83acf">
+            <h3>${name}</h3>
+            <img src="${image}" alt="${name}" style="background:transparent;" />
+            <p>${address}</p>
+            <a href="#" class="open-sidebar" 
+            data-campus="${name}" 
+            data-address="${address}" 
+            data-website="${website}" 
+            data-busList='["Q25","Q17","Q88","Q64"]'>
+            View Data!!!
+            </a>
+          </div>
+        `);
+
+        // Assign to layer groups
+        campusLayer.addLayer(layer);
+      }
+    });
+    // Added all layers initially
+    campusLayer.addTo(map);
+
+
+  })
+  .catch(error => console.error('Error loading GeoJSON data:', error));
+
+ 
+</script>
+
+<script> //****************location of Airports*****************
+
+    L.marker([40.7769, -73.8740], {icon: airportIcon})
+    .bindPopup("<b>LaGuardia Airport</b>")
+    .addTo(airportsLayer);
+
+    L.marker([40.6413, -73.7781], {icon: airportIcon})
+    .bindPopup("<b>John F. Kennedy Airport</b>")
+    .addTo(airportsLayer);
+
+    // Add the airport layer to the map
+    airportsLayer.addTo(map);
+
+</script>
+
+<script>//**************Location of Hospitals**************
+// Add hospital markers
+L.marker([40.7370, -73.8804], {icon: hospitalIcon})  // Elmhurst Hospital
+  .bindPopup("<b>Elmhurst Hospital</b>")
+  .addTo(hospitalLayer);
+
+L.marker([40.7469, -73.8456], {icon: hospitalIcon})  //NYC-Presbyterian
+  .bindPopup("<b>NewYork-Presbyterian Queens</b>")
+  .addTo(hospitalLayer);
+
+L.marker([40.7003, -73.8086], {icon: hospitalIcon})  // Jamaica Hospital
+  .bindPopup("<b>Jamaica Hospital</b>")
+  .addTo(hospitalLayer);
+
+L.marker([40.7180, -73.8305], {icon: hospitalIcon})  // Queens Hospital Center
+  .bindPopup("<b>Queens Hospital Center</b>")
+  .addTo(hospitalLayer);
+
+L.marker([40.7590, -73.8302], {icon: hospitalIcon})
+  .bindPopup("<b>Flushing Hospital Medical Center</b>")
+  .addTo(hospitalLayer);
+
+// Add the hospital layer to the map
+hospitalLayer.addTo(map);
+</script>
+
+<script>//**************create bus routes***********************
+  var busLayers = {};
+  // ACE corridor overlay group
+  var aceCorridorLayer = L.layerGroup();
+
+
+    // Predefined color palette
+const colors = [
+  "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+  "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+  "#bcbd22", "#17becf"
+];
+
+// Function to assign a color based on routeId
+function getColor(routeId) {
+  // Simple hash: sum char codes
+  let hash = 0;
+  for (let i = 0; i < routeId.length; i++) {
+    hash += routeId.charCodeAt(i);
+  }
+  // Pick a color from the palette
+  return colors[hash % colors.length];
+}
+
+// Load your route GeoJSON
+const busFiles = [
+  "/bus_route_geojson_files/Q5_bus_stops.geojson",
+  "/bus_route_geojson_files/Q43_bus_stops.geojson",
+  "/bus_route_geojson_files/Q44+_bus_stops.geojson",
+  "/bus_route_geojson_files/Q53+_bus_stops.geojson",
+  "/bus_route_geojson_files/Q54_bus_stops.geojson",
+  "/bus_route_geojson_files/Q58_bus_stops.geojson",
+  "/bus_route_geojson_files/Q69_bus_stops.geojson"
+];
+
+busFiles.forEach(file => {
+  fetch(file)
+    .then(response => response.json())
+    .then(data => {
+      var routeId = data.features[0].properties.bus_route_id || data.features[0].properties.route_id || file;
+
+      // Create a new layer group for this route
+      var layer = L.layerGroup();
+
+      // Q5 (Merrick Blvd)
+      if (routeId === 'Q5') {
+        var aceStops = data.features.filter(f =>
+          f.properties.stop_name && f.properties.stop_name.includes('MERRICK BL')
+        );
+        var aceCoords = aceStops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (aceStops.length / data.features.length * 100) : 0;
+        if (aceCoords.length > 1) {
+          drawAceCorridor(aceCoords, routeId, {acePct: acePct});
+        }
+      }
+
+      // Q53-SBS (Broadway, Queens Blvd, Woodhaven Blvd, Cross Bay Blvd)
+      if (routeId === 'Q53-SBS' || routeId === 'Q53+') {
+        var ace53Stops = data.features.filter(f => {
+          var stop = f.properties.stop_name || '';
+          return stop.includes('BROADWAY') || stop.includes('QUEENS BLVD') || stop.includes('WOODHAVEN BLVD') || stop.includes('CROSS BAY BLVD');
+        });
+        var ace53Coords = ace53Stops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (ace53Stops.length / data.features.length * 100) : 0;
+        if (ace53Coords.length > 1) {
+          drawAceCorridor(ace53Coords, routeId, {acePct: acePct});
+        }
+      }
+
+      // Q43, Sutphin Blvd / Hillside Av
+      if (routeId === 'Q43') {
+        var ace43Stops = data.features.filter(f => {
+          var stop = f.properties.stop_name || '';
+          return stop.includes('SUTPHIN BLVD') || stop.includes('HILLSIDE AV');
+        });
+        var ace43Coords = ace43Stops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (ace43Stops.length / data.features.length * 100) : 0;
+        if (ace43Coords.length > 1) {
+          drawAceCorridor(ace43Coords, routeId, {acePct: acePct});
+        }
+      }
+
+      // Q44-SBS, Main St / Cross Bronx Service Rd
+      if (routeId === 'Q44-SBS' || routeId === 'Q44+') {
+        var ace44Stops = data.features.filter(f => {
+          var stop = f.properties.stop_name || '';
+          return stop.includes('MAIN ST') || stop.includes('CROSS BRONX SERVICE RD');
+        });
+        var ace44Coords = ace44Stops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (ace44Stops.length / data.features.length * 100) : 0;
+        if (ace44Coords.length > 1) {
+          drawAceCorridor(ace44Coords, routeId, {acePct: acePct});
+        }
+      }
+
+      // Q54, Jamaica Av / Metropolitan Av
+      if (routeId === 'Q54') {
+        var ace54Stops = data.features.filter(f => {
+          var stop = f.properties.stop_name || '';
+          return stop.includes('JAMAICA AV') || stop.includes('METROPOLITAN AV');
+        });
+        var ace54Coords = ace54Stops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (ace54Stops.length / data.features.length * 100) : 0;
+        if (ace54Coords.length > 1) {
+          drawAceCorridor(ace54Coords, routeId, {acePct: acePct});
+        }
+      }
+
+      // Q58, Fresh Pond Rd / Corona Av / College Pt Blvd
+      if (routeId === 'Q58') {
+        var ace58Stops = data.features.filter(f => {
+          var stop = f.properties.stop_name || '';
+          return stop.includes('FRESH POND RD') || stop.includes('CORONA AV') || stop.includes('COLLEGE PT BLVD');
+        });
+        var ace58Coords = ace58Stops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (ace58Stops.length / data.features.length * 100) : 0;
+        if (ace58Coords.length > 1) {
+          drawAceCorridor(ace58Coords, routeId, {acePct: acePct});
+        }
+      }
+
+      // Q69, 21 St / Ditmars Blvd
+      if (routeId === 'Q69') {
+        var ace69Stops = data.features.filter(f => {
+          var stop = f.properties.stop_name || '';
+          return stop.includes('21 ST') || stop.includes('DITMARS BLVD');
+        });
+        var ace69Coords = ace69Stops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        var acePct = data.features.length ? (ace69Stops.length / data.features.length * 100) : 0;
+        if (ace69Coords.length > 1) {
+          drawAceCorridor(ace69Coords, routeId, {acePct: acePct});
+        }
+      }
+      // ACE-equipped corridor for Q6 (Sutphin Blvd, Rockaway Blvd)
+      if (routeId === 'Q6') {
+        var aceStops = data.features.filter(f =>
+          f.properties.stop_name && f.properties.stop_name.includes('SUTPHIN BLVD') || stop.includes('ROCKAWAY BLVD'));
+      ;
+        var aceCoords = aceStops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        if (aceCoords.length > 1) {
+          L.polyline(aceCoords, {
+            color: getColor(routeId),
+            weight: 8,
+            opacity: 1,
+            dashArray: '10,6'
+          }).addTo(map);
+        }
+      }
+      if (routeId === 'Q43') {
+        var aceStops = data.features.filter(f =>
+          f.properties.stop_name && f.properties.stop_name.includes('SUTPHIN BLVD') || stop.includes('ROCKAWAY BLVD'));
+      ;
+        var aceCoords = aceStops.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        if (aceCoords.length > 1) {
+          L.polyline(aceCoords, {
+            color: getColor(routeId),
+            weight: 8,
+            opacity: 1,
+            dashArray: '10,6'
+          }).addTo(map);
+        }
+      }
+      L.geoJSON(data, {
+        pointToLayer: function(feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: 2,
+                  color: getColor(routeId),
+            fillColor: getColor(routeId),
+            fillOpacity: 0.01
+          });
+        },
+        onEachFeature: function(feature, layerMarker) {
+          var stopName = feature.properties.stop_name || "Unnamed Stop";
+          layerMarker.bindPopup(`<b>Route:</b> ${routeId}<br><b>Stop:</b> ${stopName}`);
+        }
+      }).addTo(layer);
+
+      // Save this layer in the dictionary
+      busLayers[routeId] = layer;
+
+      // Add it to the map initially (optional)
+      layer.addTo(map);
+
+    })
+    .catch(err => console.error(`Error loading ${file}:`, err));
+});
+
+// Add ACE corridor layer to overlays
+var overlayMaps = {
+  "CUNY Queens Campuses": campusLayer,
+  "Airports": airportsLayer,
+  "Hospitals": hospitalLayer,
+  "ACE Bus Corridors": aceCorridorLayer
+};
+aceCorridorLayer.addTo(map);
+L.control.layers(null, overlayMaps).addTo(map);
+</script>
+
+<script>//**************************interactive graphs*******************************
+    
+const campusBusRoutes = {
+    "Queens College": ["Q17", "Q25", "Q88", "Q64"],
+    "LaGuardia Community College": ["Q32", "Q60", "Q62", "Q39" ],
+    "Queensborough Community College": ["Q27", "Q74", "Q88", "Q49", "Q75" ],
+    "York College": ["Q54", "Q60", "Q25", "Q112", "Q44+"],
+    "Cuny School of Law": ["Q32", "Q60", "Q74"],
+    // Add more campuses as needed
+};
+
+// Function to get bus routes for a campus
+function getBusRoutesForCampus(campusName) {
+    // Try exact match first
+    if (campusBusRoutes[campusName]) {
+        return campusBusRoutes[campusName];
+    }
+    
+    // Try partial matching 
+    const keys = Object.keys(campusBusRoutes);
+    for (let key of keys) {
+        if (campusName.toLowerCase().includes(key.toLowerCase()) || 
+            key.toLowerCase().includes(campusName.toLowerCase())) {
+            return campusBusRoutes[key];
+        }
+    }
+    
+    return []; // Return empty array if no routes found
+}
+
+
+// Helper: ACE stop logic for each route
+const aceStopLogic = {
+  'Q53+': stop => stop.includes('BROADWAY') || stop.includes('QUEENS BLVD') || stop.includes('WOODHAVEN BLVD') || stop.includes('CROSS BAY BLVD'),
+  'Q53-SBS': stop => stop.includes('BROADWAY') || stop.includes('QUEENS BLVD') || stop.includes('WOODHAVEN BLVD') || stop.includes('CROSS BAY BLVD'),
+  'Q43': stop => stop.includes('SUTPHIN BLVD') || stop.includes('HILLSIDE AV'),
+  'Q44+': stop => stop.includes('MAIN ST') || stop.includes('CROSS BRONX SERVICE RD'),
+  'Q44-SBS': stop => stop.includes('MAIN ST') || stop.includes('CROSS BRONX SERVICE RD'),
+  'Q54': stop => stop.includes('JAMAICA AV') || stop.includes('METROPOLITAN AV'),
+  'Q58': stop => stop.includes('FRESH POND RD') || stop.includes('CORONA AV') || stop.includes('COLLEGE PT BLVD'),
+  'Q69': stop => stop.includes('21 ST') || stop.includes('DITMARS BLVD'),
+  'Q5': stop => stop.includes('MERRICK BL'),
+};
+
+function createBusSpeedGraph(campusName, routeFilters, csvUrl) {
+  Plotly.d3.csv(csvUrl, function(err, rows) {
+    if (err) {
+      console.error("Error loading CSV:", err);
+      return;
+    }
+    function normalize(id) { return id.replace(/\s+/g, '').toUpperCase(); }
+    const normalizedFilters = routeFilters.map(normalize);
+    const filtered = rows.filter(row => normalizedFilters.includes(normalize(row.route_id)));
+
+    // Group data by route (use original route_id for display)
+    const routeGroups = {};
+    filtered.forEach(row => {
+      const route = row.route_id;
+      if (!routeGroups[route]) routeGroups[route] = [];
+      routeGroups[route].push({
+        month: new Date(row.month),
+        avgSpeed: parseFloat(row.average_speed),
+        stop_name: row.stop_name || '',
+        ace: aceStopLogic[normalize(route)] ? aceStopLogic[normalize(route)]((row.stop_name||'').toUpperCase()) : false
+      });
+    });
+
+    // Prepare sidebar for charts
+    let sidebarContent = document.getElementById('sidebar-content');
+    sidebarContent.innerHTML = `
+      <div id="line-chart" style="width:100%;height:500px;"></div>
+      <div id="ace-analytics"></div>
+    `;
+
+    // --- Plotly line chart (existing) ---
+    const colors = ['blue', 'green', 'black', 'orange', 'red', 'purple', 'cyan', 'magenta'];
+    const traces = Object.keys(routeGroups).map((route, i) => {
+      const data = routeGroups[route].sort((a,b) => a.month - b.month);
+      return {
+        x: data.map(d => d.month),
+        y: data.map(d => d.avgSpeed),
+        mode: 'lines+markers',
+        name: route,
+        line: { color: colors[i % colors.length], width: 2 }
+      };
+    });
+    const layout = {
+      title: `Average Bus Speed for ${campusName} from Jan2020-Dec2024`,
+      xaxis: { title: "Month" },
+      yaxis: { title: "Average Speed (mph)" },
+      shapes: [{
+        type: 'rect', xref: 'x', yref: 'paper', x0: '2020-03-01', x1: '2022-06-30', y0: 0, y1: 1,
+        fillcolor: 'purple', opacity: 0.2, line: { width: 0 }
+      }]
+    };
+    Plotly.newPlot('line-chart', traces, layout, {responsive: true});
+
+    // --- ACE analytics: bar chart and table ---
+    createAceAnalytics(routeGroups);
+  });
+}
+
+function createAceAnalytics(routeGroups) {
+  // For each route, compute % of stops with ACE and avg speed on ACE/non-ACE
+  let tableRows = '';
+  let barData = [];
+  Object.keys(routeGroups).forEach((route, i) => {
+    const stops = routeGroups[route];
+    const aceStops = stops.filter(s => s.ace);
+    const nonAceStops = stops.filter(s => !s.ace);
+    const acePct = stops.length ? (aceStops.length / stops.length * 100) : 0;
+    const aceAvg = aceStops.length ? (aceStops.reduce((a,b) => a + b.avgSpeed, 0) / aceStops.length) : null;
+    const nonAceAvg = nonAceStops.length ? (nonAceStops.reduce((a,b) => a + b.avgSpeed, 0) / nonAceStops.length) : null;
+    // Table row
+    tableRows += `<tr><td>${route}</td><td>${acePct.toFixed(1)}%</td><td>${aceAvg !== null ? aceAvg.toFixed(2) : 'N/A'}</td><td>${nonAceAvg !== null ? nonAceAvg.toFixed(2) : 'N/A'}</td></tr>`;
+    // Bar chart data
+    barData.push({
+      route: route,
+      acePct: acePct,
+      aceAvg: aceAvg,
+      nonAceAvg: nonAceAvg
+    });
+  });
+  // Bar chart
+  const barTraces = [
+    {
+      x: barData.map(d => d.route),
+      y: barData.map(d => d.acePct),
+      name: '% of Route with ACE',
+      type: 'bar',
+      marker: {color: '#b83acf'},
+      yaxis: 'y1'
+    },
+    {
+      x: barData.map(d => d.route),
+      y: barData.map(d => d.aceAvg),
+      name: 'Avg Speed (ACE)',
+      type: 'bar',
+      marker: {color: '#1f77b4'},
+      yaxis: 'y2'
+    },
+    {
+      x: barData.map(d => d.route),
+      y: barData.map(d => d.nonAceAvg),
+      name: 'Avg Speed (Non-ACE)',
+      type: 'bar',
+      marker: {color: '#ff7f0e'},
+      yaxis: 'y2'
+    }
+  ];
+ 
+  let analyticsDiv = document.getElementById('ace-analytics');
+  analyticsDiv.innerHTML = `<div id="ace-bar-chart" style="width:100%;height:250px;"></div>
+    <table style="width:100%;margin-top:10px;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:#b83acf;color:white;"><th>Route</th><th>% ACE</th><th>Avg Speed (ACE)</th><th>Avg Speed (Non-ACE)</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+  Plotly.newPlot('ace-bar-chart', barTraces, barLayout, {displayModeBar: false, responsive: true});
+}
+
+</script>
+
+<script>
+    
+
+    //*****************Sidebar logic*********************
+  //Sidebar DOM element
+  var sidebar = document.getElementById('sidebar');
+  var sidebarInner = document.getElementById('sidebar-inner');
+
+  //sidebar open and close functions
+  function openSidebar(contentHtml) {
+    sidebarInner.innerHTML = contentHtml; // set the Html
+    sidebar.classList.add('open');
+  }
+
+  function closeSidebar(){
+    sidebar.classList.remove('open');
+  }
+
+  sidebar.addEventListener('click', function(e){
+    if(e.target && e.target.id === 'closeSidebar'){
+        closeSidebar();
+    }
+  });
+
+// ===== Listen for clicks on "More Info" links =====
+    // ===== Listen for clicks on "More Info" links =====
+document.addEventListener('click', function(e) {
+    if(e.target && e.target.classList.contains('open-sidebar')) {
+        e.preventDefault(); // Prevent default link behavior
+        
+        // Retrieve data from data- attributes
+        var campusName = e.target.dataset.campus;
+        var campusAddress = e.target.dataset.address;
+        var campusWebsite = e.target.dataset.website;
+        
+        // Get bus routes using the mapping function (no more JSON parsing!)
+        var campusBusList = getBusRoutesForCampus(campusName);
+        
+    // Build the sidebar HTML
+    var html = `<div style="opacity: 100%">
+      <button id="closeSidebar" style="float:right;">X</button>
+      <h2>${campusName}</h2>
+      <p>${campusAddress}</p>
+      <a href="${campusWebsite}" target="_blank">Visit Website</a>
+      <p><strong>Bus Routes:</strong> ${campusBusList.length > 0 ? campusBusList.join(', ') : 'No routes available'}</p>
+      <hr>
+  <div id="sidebar-content" style="width: 100%; height: 700px; min-height: 500px; margin-top: 10px; overflow-y: auto;"></div>
+    </div>`;
+
+    // Open the sidebar with the content
+    openSidebar(html);
+
+    // Add delay and check if bus data exists
+    setTimeout(() => {
+      if (campusBusList && campusBusList.length > 0) {
+        createBusSpeedGraph(campusName, campusBusList, 'queens_bus_data.csv');
+      } else {
+        document.getElementById('sidebar-content').innerHTML = 
+          `<p>No bus route data available for ${campusName}.</p>
+           <p>Campus not yet mapped in our system.</p>`;
+      }
+    }, 100);
+    }
+});
+
+
+</script>
+ 
+<div id="barChart" style="width: 100%; height: 400px;"></div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Example data, replace with dynamic if available
+    const aceData = {
+      labels: ['ACE', 'Non-ACE'],
+      values: [60, 40], // % of route
+      avgSpeeds: [25, 15] // avg speed
+    };
+
+    const barChart = {
+      x: aceData.labels,
+      y: aceData.avgSpeeds,
+      type: 'bar',
+      marker: {
+        color: ['#1f77b4', '#ff7f0e']
+      },
+      hovertemplate:
+        '%{x}<br>' +
+        'Avg Speed: %{y} mph<br>' +
+        'Percent of Route: %{customdata}%' +
+        '<extra></extra>',
+      customdata: aceData.values
+    };
+
+    const layout = {
+      title: 'Average Speed: ACE vs Non-ACE',
+      xaxis: { title: 'Segment Type' },
+      yaxis: { title: 'Average Speed (mph)' },
+      hovermode: 'closest'
+    };
+
+    Plotly.newPlot('barChart', [barChart], layout);
+  });
+</script>
+
+<script>//************** ACE Corridor Interactivity ***************
+    // Store ACE corridor polylines for interactivity
+var acePolylines = [];
+var aceHighlight = null;
+var aceInfoPopup = null;
+
+function drawAceCorridor(stops, routeId, aceStats) {
+  var minDistance = 0.01; // ~1km, adjust as needed
+  var segment = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    var curr = stops[i];
+    var next = stops[i + 1];
+    var dLat = curr[0] - next[0];
+    var dLng = curr[1] - next[1];
+    var dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    segment.push(curr);
+    if (dist > minDistance) {
+      if (segment.length > 1) {
+        var poly = L.polyline(segment, {
+          color: getColor(routeId),
+          weight: 6,
+          opacity: 1,
+          className: 'ace-corridor-polyline',
+          routeId: routeId
+        }).addTo(aceCorridorLayer);
+        poly.routeId = routeId;
+        poly.aceStats = aceStats;
+        poly.on('click', onAceCorridorClick);
+        acePolylines.push(poly);
+      }
+      segment = [];
+    }
+  }
+  // Draw last segment
+  if (segment.length > 1) {
+    var poly = L.polyline(segment, {
+      color: getColor(routeId),
+      weight: 6,
+      opacity: 1,
+      className: 'ace-corridor-polyline',
+      routeId: routeId
+    }).addTo(aceCorridorLayer);
+    poly.routeId = routeId;
+    poly.aceStats = aceStats;
+    poly.on('click', onAceCorridorClick);
+    acePolylines.push(poly);
+  }
+}
+
+function onAceCorridorClick(e) {
+  acePolylines.forEach(function(poly) {
+    poly.setStyle({weight: 6, opacity: 1, color: getColor(poly.routeId)});
+  });
+  // Highlight all ACE polylines for this route
+  var routeId = this.routeId;
+  acePolylines.forEach(function(poly) {
+    if (poly.routeId === routeId) {
+      poly.setStyle({weight: 10, opacity: 1, color: getColor(routeId)});
+    }
+  });
+  aceHighlight = routeId;
+  // Show info popup
+  var stats = this.aceStats;
+  var content = `<b>Route:</b> ${this.routeId}<br>` +
+    `<b>ACE Segment:</b> ${stats.acePct.toFixed(1)}%<br>` +
+    `<b>Non-ACE Segment:</b> ${(100 - stats.acePct).toFixed(1)}%`;
+  if (aceInfoPopup) map.closePopup(aceInfoPopup);
+  aceInfoPopup = L.popup()
+    .setLatLng(e.latlng)
+    .setContent(content)
+    .openOn(map);
+  L.DomEvent.stopPropagation(e);
+}
+
+map.on('click', function() {
+  acePolylines.forEach(function(poly) {
+    poly.setStyle({weight: 6, opacity: 1, color: getColor(poly.routeId)});
+  });
+  aceHighlight = null;
+  if (aceInfoPopup) {
+    map.closePopup(aceInfoPopup);
+    aceInfoPopup = null;
+  }
+});
+</script>
+
+</body>
+</html>

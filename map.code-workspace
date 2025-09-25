@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "map",
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "map"
+	}
+}
